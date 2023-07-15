@@ -1,3 +1,6 @@
+use interpeter::repl;
+
 fn main() {
-    println!("Hello, world!");
+    println!("Feel Free to type in commands");
+    repl::start(&mut std::io::stdin().lock(), &mut std::io::stdout());
 }

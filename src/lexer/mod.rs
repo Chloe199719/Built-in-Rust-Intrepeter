@@ -71,7 +71,6 @@ impl Lexer {
                     ident.push(char::from_u32(self.ch as u32).unwrap());
                     self.read_char();
                 }
-                println!("ident: {}", ident);
                 match ident.as_str() {
                     "fn" => return Token::new(TokenType::FUNCTION, ident.as_str()),
                     "let" => return Token::new(TokenType::LET, ident.as_str()),
