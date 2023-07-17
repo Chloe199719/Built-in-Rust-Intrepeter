@@ -1,5 +1,6 @@
 use crate::token::{Token, TokenType};
 use std::char;
+#[derive(Debug, Clone)]
 pub struct Lexer {
     input: String,
     position: usize, // current position in input (points to current char)

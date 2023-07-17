@@ -1,5 +1,6 @@
+#[allow(non_camel_case_types)]
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     ILLEGAL,
     EOF,
@@ -20,7 +21,6 @@ pub enum TokenType {
     GT, // >
 
     EQ, // ==
-    #[allow(non_camel_case_types)]
     NOT_EQ, // !=
 
 
@@ -45,7 +45,7 @@ pub enum TokenType {
 
 
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub type_: TokenType,
     pub literal: String,

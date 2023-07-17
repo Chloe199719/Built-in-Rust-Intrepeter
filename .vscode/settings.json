@@ -1,0 +1,7 @@
+{
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  },
+  "vim.useSystemClipboard": true,
+  "cSpell.words": ["addemployee", "employeno", "IBAN"]
+}
