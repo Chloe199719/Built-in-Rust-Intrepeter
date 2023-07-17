@@ -195,7 +195,7 @@ mod test {
                 Some(stmt) => stmt,
                 None => panic!("s not ReturnStatement. got={}", stmt.token_literal()),
             };
-            // println!("{:#?}", return_stmt);
+            println!("{:#?}", return_stmt);
             assert_eq!(return_stmt.token_literal(), "return");
         }
     }
