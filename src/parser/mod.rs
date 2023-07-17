@@ -51,22 +51,12 @@ impl Parser {
     fn parse_statement(&mut self) -> Option <Box<dyn ast::Statement>> {
         match self.cur_token.type_ {
             token::TokenType::LET => self.parse_let_statement(),
+            token::TokenType::RETURN => self.prase_return_statement(),
             _ => None,
         }
     }
     fn parse_let_statement(&mut self) -> Option <Box<dyn ast::Statement>> {
         let token = self.cur_token.clone();
-    //   let stmt = ast::LetStatement {
-    //       token: self.cur_token.clone(),
-    //       name: ast::Identifier {
-    //           token: self.cur_token.clone(),
-    //           value: self.cur_token.literal.clone(),
-    //       },
-    //       value: Box::new(ast::Identifier {
-    //           token: self.cur_token.clone(),
-    //           value: self.cur_token.literal.clone(),
-    //       }),
-    //   };
 
         if !self.expect_peek(token::TokenType::IDENT) {
             return None;
@@ -91,6 +81,20 @@ impl Parser {
         }
      
         Some(Box::new(stmt))
+    }
+    fn prase_return_statement(&mut self) -> Option<Box<dyn ast::Statement>> {
+        let token = self.cur_token.clone();
+        self.next_token();
+        while !self.cur_token_is(token::TokenType::SEMICOLON) {
+            self.next_token();
+        }
+        Some(Box::new(ast::ReturnStatement {
+            token,
+            return_value: Box::new(ast::Identifier {
+                token: self.cur_token.clone(),
+                value: self.cur_token.literal.clone(),
+            }),
+        }))
     }
 
     fn cur_token_is(&self, t: token::TokenType) -> bool {
@@ -172,5 +176,27 @@ mod test {
         let = 10;
         let 838383;
         ")
+    }
+    #[test]
+    fn test_return_statements() {
+        let input = "
+        return 5;
+        return 10;
+        return 993322;
+        ";
+        let l = Lexer::new(input.to_string());
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parser_errors(&p);
+        assert_eq!(program.statements.len(), 3);
+       
+        for stmt in program.statements {
+            let return_stmt = match stmt.as_any().downcast_ref::<ast::ReturnStatement>() {
+                Some(stmt) => stmt,
+                None => panic!("s not ReturnStatement. got={}", stmt.token_literal()),
+            };
+            // println!("{:#?}", return_stmt);
+            assert_eq!(return_stmt.token_literal(), "return");
+        }
     }
 }

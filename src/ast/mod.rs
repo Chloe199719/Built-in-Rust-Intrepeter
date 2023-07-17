@@ -45,6 +45,27 @@ impl Node for LetStatement {
         self.token.literal.clone()
     }
 }
+#[derive(Debug)]
+pub struct ReturnStatement {
+    pub token: Token,
+    pub return_value: Box<dyn Expression>
+}
+
+impl Statement for ReturnStatement {
+    fn statement_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+impl Node for ReturnStatement {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+}
+
 
 #[derive(Debug)]
 pub struct Identifier {
