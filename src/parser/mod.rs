@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+#[allow(unused_imports)]
 use std::collections::HashMap;
 
 use crate::token::{Token, self};
@@ -44,7 +46,9 @@ impl Parser {
         };
          p.register_prefix(token::TokenType::IDENT, Parser::parse_identifier_expression);
          p.register_prefix(token::TokenType::INT, Parser::parse_integer_literal);
-         
+         p.register_prefix(token::TokenType::BANG, Parser::parse_prefix_expression);
+         p.register_prefix(token::TokenType::MINUS, Parser::parse_prefix_expression);
+
         p.next_token();
         p.next_token();
         p
@@ -124,15 +128,7 @@ impl Parser {
         };
         Some(Box::new(lit))
     }
-  fn parse_expression(&mut self, precedence: Precedence) -> Option <Box<dyn ast::Expression>> {
-    let prefix = self.perfix_parse_fns.get(&self.cur_token.type_);
-    match prefix {
-        Some(prefix_fn) => prefix_fn(self),
-        None => None,
-    }
-}
-
- pub fn parse_prefix_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+  fn parse_expression(&mut self, _precedence: Precedence) -> Option <Box<dyn ast::Expression>> {
     let prefix = self.perfix_parse_fns.get(&self.cur_token.type_);
     match prefix {
         Some(prefix_fn) => prefix_fn(self),
@@ -142,6 +138,20 @@ impl Parser {
         },
     }
 }
+    
+    pub fn parse_prefix_expression(&mut self) -> Option<Box<dyn ast::Expression>> {
+        let token = self.cur_token.clone();
+        let operator = self.cur_token.literal.clone();
+        self.next_token();
+
+
+        let expresion = ast::PrefixExpression {
+            token,
+            operator,
+            right: self.parse_expression(Precedence::PREFIX).unwrap(),
+        };
+        Some(Box::new(expresion))
+    }
 
     fn parse_let_statement(&mut self) -> Option <Box<dyn ast::Statement>> {
         let token = self.cur_token.clone();
@@ -324,5 +334,36 @@ mod test {
         };
         assert_eq!(literal.value, 5);
         assert_eq!(literal.token_literal(), "5");
+    }
+    #[test]
+    fn test_perfix_operator() {
+        let tests = vec![
+            ("!5;", "!", 5),
+            ("-15;", "-", 15),
+    
+        ];
+        for (input, operator, value) in tests {
+            let l = Lexer::new(input.to_string());
+            let mut p = Parser::new(l);
+            let program = p.parse_program();
+            check_parser_errors(&p);
+            assert_eq!(program.statements.len(), 1);
+            let stmt = &program.statements[0];
+            let expression = match stmt.as_any().downcast_ref::<ast::ExpressionStatement>() {
+                Some(stmt) => match stmt.expression.as_any().downcast_ref::<ast::PrefixExpression>() {
+                    Some(expression) => expression,
+                    None => panic!("s not PrefixExpression. got={}", stmt.token_literal()),
+                },
+                None => panic!("s not ExpressionStatement. got={}", stmt.token_literal()),
+            };
+            assert_eq!(expression.operator, operator);
+            match expression.right.as_any().downcast_ref::<ast::IntegerLiteral>() {
+                Some(literal) => assert_eq!(literal.value, value),
+                None => panic!("s not IntegerLiteral. got={}", stmt.token_literal()),
+            };
+                
+            
+         
+        }
     }
 }

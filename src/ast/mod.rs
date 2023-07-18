@@ -174,6 +174,38 @@ impl Node for IntegerLiteral {
     }
 }
 
+#[derive(Debug)]
+pub struct PrefixExpression {
+    pub token: Token,
+    pub operator: String,
+    pub right: Box<dyn Expression>
+}
+impl Expression for PrefixExpression {
+    fn expression_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    
+}
+
+impl Node for PrefixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        let mut out = String::new();
+        out.push('(');
+        out.push_str(&self.operator);
+        out.push_str(&self.right.string());
+        out.push(')');
+        out
+    }
+    
+}
+
 
 
 
