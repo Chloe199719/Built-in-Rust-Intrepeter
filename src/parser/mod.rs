@@ -43,6 +43,8 @@ impl Parser {
             infix_parse_fns: HashMap::new(),
         };
          p.register_prefix(token::TokenType::IDENT, Parser::parse_identifier_expression);
+         p.register_prefix(token::TokenType::INT, Parser::parse_integer_literal);
+         
         p.next_token();
         p.next_token();
         p
@@ -84,12 +86,12 @@ impl Parser {
         }
         program
     } 
-    fn parse_identifier(&self) -> Option <Box<dyn ast::Expression>> {
-        Some(Box::new(ast::Identifier {
-            token: self.cur_token.clone(),
-            value: self.cur_token.literal.clone(),
-        }))
-    }
+    // fn parse_identifier(&self) -> Option <Box<dyn ast::Expression>> {
+    //     Some(Box::new(ast::Identifier {
+    //         token: self.cur_token.clone(),
+    //         value: self.cur_token.literal.clone(),
+    //     }))
+    // }
     fn parse_statement(&mut self) -> Option <Box<dyn ast::Statement>> {
         match self.cur_token.type_ {
             token::TokenType::LET => self.parse_let_statement(),
@@ -106,6 +108,21 @@ impl Parser {
             self.next_token();
         }
         Some(Box::new(stmt))
+    }
+    fn parse_integer_literal(&mut self) -> Option <Box<dyn ast::Expression>> {
+        let value = self.cur_token.literal.parse::<i64>();
+       let value = match value {
+            Ok(x) => x,
+            Err(_) => {
+                self.errors.push(format!("could not parse {:?} as integer", self.cur_token.literal));
+                return None;
+            },
+       };
+        let lit = ast::IntegerLiteral {
+            token: self.cur_token.clone(),
+            value
+        };
+        Some(Box::new(lit))
     }
   fn parse_expression(&mut self, precedence: Precedence) -> Option <Box<dyn ast::Expression>> {
     let prefix = self.perfix_parse_fns.get(&self.cur_token.type_);
@@ -288,5 +305,24 @@ mod test {
         };
         assert_eq!(ident.value, "foobar");
         assert_eq!(ident.token_literal(), "foobar");
+    }
+    #[test]
+    fn test_integer_literal_expression() {
+        let input = "5;";
+        let l = Lexer::new(input.to_string());
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parser_errors(&p);
+        assert_eq!(program.statements.len(), 1);
+        let stmt = &program.statements[0];
+        let literal = match stmt.as_any().downcast_ref::<ast::ExpressionStatement>() {
+            Some(stmt) => match stmt.expression.as_any().downcast_ref::<ast::IntegerLiteral>() {
+                Some(literal) => literal,
+                None => panic!("s not IntegerLiteral. got={}", stmt.token_literal()),
+            },
+            None => panic!("s not ExpressionStatement. got={}", stmt.token_literal()),
+        };
+        assert_eq!(literal.value, 5);
+        assert_eq!(literal.token_literal(), "5");
     }
 }
