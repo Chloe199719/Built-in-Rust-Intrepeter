@@ -1,7 +1,20 @@
 use std::io::{BufRead, Write};
 
-use crate::{lexer::Lexer, token::TokenType};
-
+use crate::{lexer::Lexer,  parser:: Parser, ast::Node};
+const MONKEY_FACE:&str = r#" 
+         __,__
+   .--. .-" "-. .--.
+  / .. \/ .-. .-. \/ .. \
+ | | '| / Y \ |' | |
+ | \ \ \ 0 | 0 / / / |
+ \ '- ,\.-"""""""-./, -' /
+''-' /_ ^ ^ _\ '-''
+| \._ _./ |
+\ \ '~' / /
+'._ '-=-' _.'
+'-----'
+`
+"#;
 const PROMT: &str = ">> ";
 
 pub fn  start<R: BufRead, W: Write>(reader: &mut R, writer: &mut W) {
@@ -10,11 +23,22 @@ pub fn  start<R: BufRead, W: Write>(reader: &mut R, writer: &mut W) {
         writer.flush().unwrap();
         let mut line = String::new();
         reader.read_line(&mut line).unwrap();
-        let mut l = Lexer::new(line);
-        let mut tok = l.next_token();
-        while tok.type_ != TokenType::EOF {
-            write!(writer, "{:?}\n", tok).unwrap();
-            tok = l.next_token();
+        let  l = Lexer::new(line);
+        let mut parser = Parser::new( l);
+        let program = parser.parse_program();
+        if parser.errors.len() != 0 {
+            print_parse_errors(writer, parser.errors);
+            continue;
         }
+        write!(writer, "{}", program.string()).unwrap();
+        write!(writer, "\n").unwrap();
+    }
+}
+
+fn print_parse_errors<W: Write>(writer: &mut W, errors: Vec<String>) {
+    write!(writer, "{}", MONKEY_FACE).unwrap();
+    write!(writer, "Woops! We ran into some monkey business here!\n").unwrap();
+    for error in errors {
+        write!(writer, "\t{}\n", error).unwrap();
     }
 }

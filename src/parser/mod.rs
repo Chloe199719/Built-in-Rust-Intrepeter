@@ -16,7 +16,7 @@ pub struct Parser {
     lexer: Lexer,
     cur_token: Token,
     peek_token: Token,
-    errors: Vec<String>,
+  pub  errors: Vec<String>,
     precedence: HashMap<token::TokenType, Precedence>,
     perfix_parse_fns: HashMap<token::TokenType, PrefixParseFn>,
     infix_parse_fns: HashMap<token::TokenType, InfixParseFn>,
@@ -389,9 +389,7 @@ impl Parser {
             name,
             value: self.parse_expression(Precedence::LOWEST).unwrap(),
         };
-        while !self.cur_token_is(token::TokenType::SEMICOLON) {
-            self.next_token();
-        }
+   
      
         Some(Box::new(stmt))
     }
