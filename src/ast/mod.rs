@@ -14,7 +14,7 @@ pub trait Expression: Node + std::fmt::Debug {
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
-
+#[derive(Debug)]
 pub struct Program {
     pub statements: Vec<Box<dyn Statement>>
 }
@@ -199,6 +199,41 @@ impl Node for PrefixExpression {
         let mut out = String::new();
         out.push('(');
         out.push_str(&self.operator);
+        out.push_str(&self.right.string());
+        out.push(')');
+        out
+    }
+    
+}
+#[derive(Debug)]
+pub struct InfixExpression {
+    pub token: Token,
+    pub left: Box<dyn Expression>,
+    pub operator: String,
+    pub right: Box<dyn Expression>
+}
+impl Expression for InfixExpression {
+    fn expression_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    
+}
+
+impl Node for InfixExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        let mut out = String::new();
+        out.push('(');
+        out.push_str(&self.left.string());
+        out.push(' ');
+        out.push_str(&self.operator);
+        out.push(' ');
         out.push_str(&self.right.string());
         out.push(')');
         out
