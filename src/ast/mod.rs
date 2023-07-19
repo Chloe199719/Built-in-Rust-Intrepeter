@@ -334,6 +334,81 @@ impl Node for BlockStatement {
     
 }
 
+#[derive(Debug)]
+pub struct FunctionLiteral {
+    pub token: Token,
+    pub parameters: Vec<Identifier>,
+    pub body: Box<dyn Statement>
+}
+impl Expression for FunctionLiteral {
+    fn expression_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    
+}
+
+impl Node for FunctionLiteral {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        let mut out = String::new();
+        let mut params = Vec::new();
+        for p in &self.parameters {
+            params.push(p.string());
+        }
+        out.push_str(&self.token_literal());
+        out.push('(');
+        out.push_str(&params.join(", "));
+        out.push_str(") ");
+        out.push_str(&self.body.string());
+        out
+    }
+    
+}
+
+#[derive(Debug)]
+pub struct CallExpression {
+    pub token: Token,
+    pub function: Box<dyn Expression>,
+    pub arguments: Vec<Box<dyn Expression>>
+}
+
+impl Expression for CallExpression {
+    fn expression_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    
+}
+
+impl Node for CallExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        let mut out = String::new();
+        let mut args = Vec::new();
+        for a in &self.arguments {
+            args.push(a.string());
+        }
+        out.push_str(&self.function.string());
+        out.push('(');
+        out.push_str(&args.join(", "));
+        out.push(')');
+        out
+    }
+    
+}
+
+
 
 
 
