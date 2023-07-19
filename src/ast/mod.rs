@@ -1,15 +1,16 @@
 use crate::token::Token;
+
 pub trait Node {
     fn token_literal(&self) -> String;
     fn string(&self) -> String;
 }
 
-pub trait Statement: Node + std::fmt::Debug {
+pub trait Statement: Node + std::fmt::Debug   {
     fn statement_node(&self);
     fn as_any(&self) -> &dyn std::any::Any;
 }
 
-pub trait Expression: Node + std::fmt::Debug {
+pub trait Expression: Node + std::fmt::Debug  {
     fn expression_node(&self);
     fn as_any(&self) -> &dyn std::any::Any;
 }
@@ -240,6 +241,100 @@ impl Node for InfixExpression {
     }
     
 }
+#[derive(Debug)]
+pub struct Boolean {
+    pub token: Token,
+    pub value: bool
+}
+impl Expression for Boolean {
+    fn expression_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    
+}
+
+impl Node for Boolean {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        self.token.literal.clone()
+    }
+    
+}
+
+#[derive(Debug)]
+pub struct IfExpression {
+    pub token: Token,
+    pub condition: Box<dyn Expression>,
+    pub consequence: Box <dyn Statement>,
+    pub alternative: Option<Box <dyn Statement>>
+}
+impl Expression for IfExpression {
+    fn expression_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    
+}
+
+impl Node for IfExpression {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        let mut out = String::new();
+        out.push_str("if");
+        out.push_str(&self.condition.string());
+        out.push_str(" ");
+        out.push_str(&self.consequence.string());
+        if let Some(alt) = &self.alternative {
+            out.push_str("else ");
+            out.push_str(&alt.string());
+        }
+        out
+    }
+    
+}
+
+#[derive(Debug)]
+pub struct BlockStatement {
+    pub token: Token,
+    pub statements: Vec<Box<dyn Statement>>
+}
+impl Statement for BlockStatement {
+    fn statement_node(&self) {
+        
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    
+}
+
+impl Node for BlockStatement {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        let mut out = String::new();
+        for s in &self.statements {
+            out.push_str(&s.string());
+        }
+        out
+    }
+    
+}
+
+
 
 
 

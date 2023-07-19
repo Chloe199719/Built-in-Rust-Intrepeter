@@ -3,5 +3,12 @@
     "editor.defaultFormatter": "Prisma.prisma"
   },
   "vim.useSystemClipboard": true,
-  "cSpell.words": ["addemployee", "employeno", "IBAN", "perfix"]
+  "cSpell.words": [
+    "addemployee",
+    "employeno",
+    "IBAN",
+    "LPAREN",
+    "perfix",
+    "RPAREN"
+  ]
 }
