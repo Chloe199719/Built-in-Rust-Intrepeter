@@ -299,6 +299,7 @@ impl Parser {
     } 
 
     fn parse_statement(&mut self) -> Option <Box<dyn ast::Statement>> {
+        // println!("parse_statement: {:?}", self.cur_token.type_);
         match self.cur_token.type_ {
             token::TokenType::LET => self.parse_let_statement(),
             token::TokenType::RETURN => self.prase_return_statement(),
@@ -307,10 +308,12 @@ impl Parser {
     }
 
     fn parse_expression_statement(&mut self) -> Option <Box<dyn ast::Statement>> {
+        // println!("parse_expression_statement: {:?}", self.cur_token.type_);
         let stmt = ast::ExpressionStatement {
             token: self.cur_token.clone(),
             expression: self.parse_expression(Precedence::LOWEST).unwrap(),
         };
+
         if self.peek_token_is(token::TokenType::SEMICOLON) {
             self.next_token();
         }
@@ -334,10 +337,12 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, precedence: Precedence) -> Option <Box<dyn ast::Expression>> {
+        // println!("parse_expression: {:?}", self.cur_token.type_);
         let prefix = self.perfix_parse_fns.get(&self.cur_token.type_);
         let mut left_expression = match prefix {
             Some(prefix_fn) => prefix_fn(self),
             None => {
+                // println!("no prefix parse function for {:?} found", self.cur_token.type_);
                 self.errors.push(format!("no prefix parse function for {:?} found", self.cur_token.type_));
                 return None;
             },
@@ -384,10 +389,14 @@ impl Parser {
             return None;
         }
         self.next_token();
-           let stmt = ast::LetStatement {
+
+         let stmt = ast::LetStatement {
             token,
             name,
             value: self.parse_expression(Precedence::LOWEST).unwrap(),
+        };
+        if self.peek_token_is(token::TokenType::SEMICOLON) {
+            self.next_token();
         };
    
      
@@ -474,21 +483,6 @@ mod test {
         assert_eq!(ident.token_literal(), expected);
     }
 
-    fn test_let_statements(input: &str) {
-       
-        let l = Lexer::new(input.to_string());
-        let mut p = Parser::new(l);
-        
-        let program = p.parse_program();
-        // check_parser_errors(&p);
-        check_parser_errors(&p);
-        assert_eq!(program.statements.len(), 3);
-        let tests = vec!["x", "y", "foobar"];
-        for (i, tt) in tests.iter().enumerate() {
-            let stmt = &program.statements[i];
-            test_let_statement(stmt, tt);
-        }
-    }
     fn test_let_statement(s: &Box<dyn ast::Statement>, name: &str) {
         assert_eq!(s.token_literal(), "let");
          let let_stmt = match s.as_any().downcast_ref::<ast::LetStatement>() {
@@ -514,13 +508,20 @@ mod test {
         panic!();
     }
     #[test]
-    fn test_1(){
-        test_let_statements("
-        let x = 5;
-        let y = 10;
-        let foobar = 838383;
-        ")
-    } 
+
+    fn test_let_statements() {
+        let input = vec![("let x = 5;", "x", 5), ("let y = 10;", "y", 10), ("let foobar = 838383;", "foobar", 838383)];
+        for (_, tt) in input.iter().enumerate() {
+            let l = Lexer::new(tt.0.to_string());
+            let mut p = Parser::new(l);
+            let program = p.parse_program();
+            check_parser_errors(&p);
+            assert_eq!(program.statements.len(), 1);
+            let stmt = &program.statements[0];
+            test_let_statement(stmt, tt.1);
+        }
+
+    }
     // #[test]
     // #[should_panic]
     // fn test_2(){
@@ -921,7 +922,24 @@ mod test {
         assert_eq!(expression.arguments[2].string(), "(4 + 5)");
     }
 
+    #[test]
+    fn test_program(){
+        let input = "let x = 2;
+        let y = 3;
+        let foobar = 1234567890;
+        x + y + foobar;
+        let x = fn(x, y) {
+            x + y;
+        };
+        ";
+        let l = Lexer::new(input.to_string());
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parser_errors(&p);
+        assert_eq!(program.statements.len(), 5);
+        println!("{:#?}", program);
 
+    }
 
   
 }
