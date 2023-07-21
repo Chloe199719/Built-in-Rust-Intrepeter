@@ -2,32 +2,44 @@ use std::rc::Rc;
 
 use crate::ast::{self, Expression};
 use crate::ast::Statement;
-use crate::object;
+use crate::object::{self, Object};
 use crate::ast::Node;
 
     pub fn eval(node: &dyn Node) -> Rc<Box<dyn object::Object>> {
         match node.node_type() {
-            ast::NodeType::Program => eval_program(&Rc::new(&node.as_any().downcast_ref::<ast::Program>().unwrap().statements)),
+            ast::NodeType::Program => eval_program(&node.as_any().downcast_ref::<ast::Program>().unwrap().statements),
             ast::NodeType::ExpressionStatement => eval(node.as_any().downcast_ref::<ast::ExpressionStatement>().unwrap().expression.as_node()),
             ast::NodeType::IntegerLiteral =>Rc::new(Box::new(object::Integer{value:node.as_any().downcast_ref::<ast::IntegerLiteral>().unwrap().value})),
             ast::NodeType::Boolean => bool_to_boolean_object(Some(node.as_any().downcast_ref::<ast::Boolean>().unwrap().value)),
             ast::NodeType::PrefixExpression => {
           
                 let right = eval(node.as_any().downcast_ref::<ast::PrefixExpression>().unwrap().right.as_node());
+                if is_error(right.clone()) {
+                    return right;
+                }
                 return eval_perfix_expresion(&node.as_any().downcast_ref::<ast::PrefixExpression>().unwrap().operator, right);
 
             },
             ast::NodeType::InfixExpression => {
                 let left = eval(node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().left.as_node());
+                if is_error(left.clone()) {
+                    return left;
+                }
                 let right = eval(node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().right.as_node());
-
+                if is_error(right.clone()) {
+                    return right;
+                }
+                
                 return eval_infix_expression(&node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().operator, left, right);
-               
+                
             },
-            ast::NodeType::BlockStatement => eval_block_statements(&Rc::new(&node.as_any().downcast_ref::<ast::BlockStatement>().unwrap().statements)),
+            ast::NodeType::BlockStatement => eval_block_statements(&node.as_any().downcast_ref::<ast::BlockStatement>().unwrap().statements),
             ast::NodeType::IfExpression => eval_if_expression(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().as_node()),
             ast::NodeType::ReturnStatement => {
                 let value = eval(node.as_any().downcast_ref::<ast::ReturnStatement>().unwrap().return_value.as_node());
+                if is_error(value.clone()) {
+                    return value;
+                }
                 return Rc::new(Box::new(object::Return{value}));
             }
             _ => panic!("Not implemented yet")
@@ -35,25 +47,50 @@ use crate::ast::Node;
         }
     }
 
+    fn  new_error(message: &str) -> Rc<Box<dyn object::Object>> {
+        Rc::new(Box::new(object::Error{message: message.to_string()}))
+    }
 
-    fn eval_block_statements(statements: &Rc<&Vec<Box<dyn Statement>>>) -> Rc<Box<dyn object::Object>>{
+    fn is_error(obj: Rc<Box<dyn object::Object>>) -> bool {
+        obj.object_type() == object::ObjectType::ERROR
+    }
+    fn eval_block_statements(statements: &Vec<Box<dyn Statement>>) -> Rc<Box<dyn object::Object>>{
         let mut result: Rc<Box<dyn object::Object>> = Rc::new(Box::new(object::Null{}));
         for statement in statements.iter() {
             result = eval(statement.as_node());
-            if result.object_type() == object::ObjectType::RETURN && result.object_type() != object::ObjectType::NULL {
-                return result
-            }
+            match result.object_type() {
+               object::ObjectType::RETURN | object::ObjectType::ERROR => return result,
+               _ => continue,
+               
+           }
         }
         return result;
 
 
-
+        
     }
-
-
+    
+    pub  fn eval_program(statements: &Vec<Box<dyn Statement>>) -> Rc<Box<dyn object::Object>> {
+        let mut result: Rc<Box<dyn object::Object>> = Rc::new(Box::new(object::Null{}));
+        for statement in statements.iter() {
+            // println!("{:?}", statement);
+            result = eval(statement.as_node());
+            println!("{:?}", result.inspect());
+            result = match result.object_type() {
+                object::ObjectType::RETURN =>return  result.as_any().downcast_ref::<object::Return>().unwrap().value(),
+                object::ObjectType::ERROR => return result,
+                _ => result,
+            };
+           
+        }
+        return result;
+    }
+    
     fn eval_if_expression(node: &dyn Node) -> Rc<Box<dyn object::Object>>{
         let condition = eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().condition.as_node());
-
+        if is_error(condition.clone()) {
+            return condition;
+        }
         if is_truthy(condition) {
             return eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().consequence.as_node());
         } else {
@@ -61,11 +98,11 @@ use crate::ast::Node;
                 Some(_) => eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().alternative.as_ref().unwrap().as_node()),
                 None => Rc::new(Box::new(object::Null{})),
             }
-    
+            
         }
-
+        
     }
-
+    
     fn is_truthy (obj: Rc<Box<dyn object::Object>>) -> bool {
         match obj.object_type() {
             object::ObjectType::BOOLEAN => {
@@ -82,51 +119,50 @@ use crate::ast::Node;
             (object::ObjectType::INTEGER, object::ObjectType::INTEGER) => {
                 let left_value = left.as_any().downcast_ref::<object::Integer>().unwrap();
                 let right_value = right.as_any().downcast_ref::<object::Integer>().unwrap();
-                return eval_integer_infix_expression(operator, left_value.value, right_value.value);
+                return eval_integer_infix_expression(operator, left_value, right_value);
             },
             (object::ObjectType::BOOLEAN, object::ObjectType::BOOLEAN) => {
                 let left_value = left.as_any().downcast_ref::<object::Boolean>().unwrap();
                 let right_value = right.as_any().downcast_ref::<object::Boolean>().unwrap();
-                return eval_boolean_infix_expression(operator, left_value.value, right_value.value);
+                return eval_boolean_infix_expression(operator, left_value, right_value);
             },
-            _ => panic!("Not implemented yet")
-        }
-    }
-
-    fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> Rc<Box<dyn object::Object>> {
-        match operator {
-            "+" => Rc::new(Box::new(object::Integer{value: left + right})),
-            "-" => Rc::new(Box::new(object::Integer{value: left - right})),
-            "*" => Rc::new(Box::new(object::Integer{value: left * right})),
-            "/" => Rc::new(Box::new(object::Integer{value: left / right})),
-            "<" => bool_to_boolean_object(Some(left < right)),
-            ">" => bool_to_boolean_object(Some(left > right)),
-            "==" => bool_to_boolean_object(Some(left == right)),
-            "!=" => bool_to_boolean_object(Some(left != right)),
-            _ => panic!("Not implemented yet")
-        }
-    }
-
-    fn eval_boolean_infix_expression(operator: &str, left: bool, right: bool) -> Rc<Box<dyn object::Object>> {
-        match operator {
-            "==" => bool_to_boolean_object(Some(left == right)),
-            "!=" => bool_to_boolean_object(Some(left != right)),
-            _ => panic!("Not implemented yet")
-        }
-    }
-
-
-    pub  fn eval_program(statements: &Rc<&Vec<Box<dyn Statement>>>) -> Rc<Box<dyn object::Object>> {
-        let mut result: Rc<Box<dyn object::Object>> = Rc::new(Box::new(object::Null{}));
-        for statement in statements.iter() {
-            // println!("{:?}", statement);
-            result = eval(statement.as_node());
-            if result.object_type() == object::ObjectType::RETURN {
-                return result.as_any().downcast_ref::<object::Return>().unwrap().value();
+            (object::ObjectType::INTEGER , _)=>{
+                return  new_error(&format!("type mismatch: {} {} {}", left.object_type(), operator, right.object_type()));
             }
+            (object::ObjectType::BOOLEAN , _)=>{
+                return  new_error(&format!("type mismatch: {} {} {}", left.object_type(), operator, right.object_type()));
+            }
+            _ => new_error(&format!("unknown operator: {} {} {}", left.object_type(), operator, right.object_type()))
         }
-        return result;
     }
+
+    fn eval_integer_infix_expression(operator: &str, left: &object::Integer, right:  &object::Integer) -> Rc<Box<dyn object::Object>> {
+        let right_value = right.value;
+        let left_value = left.value;
+        match operator {
+            "+" => Rc::new(Box::new(object::Integer{value: left_value + right_value})),
+            "-" => Rc::new(Box::new(object::Integer{value: left_value - right_value})),
+            "*" => Rc::new(Box::new(object::Integer{value: left_value * right_value})),
+            "/" => Rc::new(Box::new(object::Integer{value: left_value / right_value})),
+            "<" => bool_to_boolean_object(Some(left_value < right_value)),
+            ">" => bool_to_boolean_object(Some(left_value > right_value)),
+            "==" => bool_to_boolean_object(Some(left_value == right_value)),
+            "!=" => bool_to_boolean_object(Some(left_value != right_value)),
+            _ => new_error( &format!("unknown operator: {} {} {}", left.object_type(), operator, right.object_type()))
+        }
+    }
+
+    fn eval_boolean_infix_expression(operator: &str, left: &object::Boolean, right: &object::Boolean) -> Rc<Box<dyn object::Object>> {
+        let right_value = right.value;
+        let left_value = left.value;
+        match operator {
+            "==" => bool_to_boolean_object(Some(left_value == right_value)),
+            "!=" => bool_to_boolean_object(Some(left_value != right_value)),
+            _ => new_error( &format!("unknown operator: {} {} {}", left.object_type(), operator, right.object_type()))
+        }
+    }
+
+
 
     pub fn bool_to_boolean_object(input: Option<bool>) -> Rc<Box<dyn object::Object>> {
         match input {
@@ -141,7 +177,7 @@ use crate::ast::Node;
         match operator {
             "!" => eval_bang_operator_expression(right),
             "-" => eval_minus_prefix_operator_expression(right),
-            _ => panic!("Not implemented yet")
+            _ =>  new_error(&format!("unknown operator: {}{}", operator, right.object_type())),
         }
     }
 
@@ -162,7 +198,7 @@ use crate::ast::Node;
                 let value = right.as_any().downcast_ref::<object::Integer>().unwrap();
                 return Rc::new(Box::new(object::Integer{value: -value.value}));
             }
-            _ => panic!("Not implemented yet")
+            _ => new_error(&format!("unknown operator: -{}", right.object_type())),
         }
     }
 
@@ -313,6 +349,47 @@ mod test {
             let evaluated = test_eval(input);
             test_integer_object(evaluated, expected);
         }
+     
+        
+    }
+    #[test]
+    fn test_error_handling (){
+        let tests = vec![
+            ("5 + true;", "type mismatch: INTEGER + BOOLEAN"),
+            ("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN"),
+            ("-true", "unknown operator: -BOOLEAN"),
+            ("true + false;", "unknown operator: BOOLEAN + BOOLEAN"),
+            ("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN"),
+            ("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN"),
+            // (
+            //     r#"
+            //     if (10 > 1) {
+            //         if (10 > 1) {
+            //             return true + false;
+            //         }
+            //         return 1;
+            //     }
+            //     "#,
+            //     "unknown operator: BOOLEAN + BOOLEAN",
+            // ),
+            // ("foobar", "identifier not found: foobar"),
+            // (r#""Hello" - "World""#, "unknown operator: STRING - STRING"),
+            // (
+            //     r#"
+            //     {
+            //         let foobar = 1;
+            //         foobar
+            //     }
+            //     "#,
+            //     "identifier not found: foobar",
+            // ),
+        ];
+        for (input, expected) in tests {
+            
+            let evaluated = test_eval(input);
 
+            let err = evaluated.as_any().downcast_ref::<object::Error>().unwrap();
+            assert_eq!(err.message, expected);
+        }
     }
 }

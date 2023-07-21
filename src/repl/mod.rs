@@ -23,6 +23,10 @@ pub fn  start<R: BufRead, W: Write>(reader: &mut R, writer: &mut W) {
         writer.flush().unwrap();
         let mut line = String::new();
         reader.read_line(&mut line).unwrap();
+
+        if line.trim() == "exit" {
+            break;
+        }
         let  l = Lexer::new(line);
         let mut parser = Parser::new( l);
         let program = parser.parse_program();
