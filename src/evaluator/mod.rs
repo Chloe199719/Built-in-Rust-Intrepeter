@@ -7,7 +7,7 @@ use crate::ast::Node;
 
     pub fn eval(node: &dyn Node) -> Rc<Box<dyn object::Object>> {
         match node.node_type() {
-            ast::NodeType::Program => eval_statements(&node.as_any().downcast_ref::<ast::Program>().unwrap().statements),
+            ast::NodeType::Program => eval_program(&Rc::new(&node.as_any().downcast_ref::<ast::Program>().unwrap().statements)),
             ast::NodeType::ExpressionStatement => eval(node.as_any().downcast_ref::<ast::ExpressionStatement>().unwrap().expression.as_node()),
             ast::NodeType::IntegerLiteral =>Rc::new(Box::new(object::Integer{value:node.as_any().downcast_ref::<ast::IntegerLiteral>().unwrap().value})),
             ast::NodeType::Boolean => bool_to_boolean_object(Some(node.as_any().downcast_ref::<ast::Boolean>().unwrap().value)),
@@ -24,18 +24,34 @@ use crate::ast::Node;
                 return eval_infix_expression(&node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().operator, left, right);
                
             },
-            ast::NodeType::BlockStatement => eval_statements(&node.as_any().downcast_ref::<ast::BlockStatement>().unwrap().statements),
+            ast::NodeType::BlockStatement => eval_block_statements(&Rc::new(&node.as_any().downcast_ref::<ast::BlockStatement>().unwrap().statements)),
             ast::NodeType::IfExpression => eval_if_expression(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().as_node()),
             ast::NodeType::ReturnStatement => {
                 let value = eval(node.as_any().downcast_ref::<ast::ReturnStatement>().unwrap().return_value.as_node());
-                return Box::new(object::Return{value});
+                return Rc::new(Box::new(object::Return{value}));
             }
             _ => panic!("Not implemented yet")
             
         }
     }
 
-    fn eval_if_expression(node: &dyn Node) -> Box<dyn object::Object>{
+
+    fn eval_block_statements(statements: &Rc<&Vec<Box<dyn Statement>>>) -> Rc<Box<dyn object::Object>>{
+        let mut result: Rc<Box<dyn object::Object>> = Rc::new(Box::new(object::Null{}));
+        for statement in statements.iter() {
+            result = eval(statement.as_node());
+            if result.object_type() == object::ObjectType::RETURN && result.object_type() != object::ObjectType::NULL {
+                return result
+            }
+        }
+        return result;
+
+
+
+    }
+
+
+    fn eval_if_expression(node: &dyn Node) -> Rc<Box<dyn object::Object>>{
         let condition = eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().condition.as_node());
 
         if is_truthy(condition) {
@@ -43,14 +59,14 @@ use crate::ast::Node;
         } else {
             match node.as_any().downcast_ref::<ast::IfExpression>().unwrap().alternative  {
                 Some(_) => eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().alternative.as_ref().unwrap().as_node()),
-                None => Box::new(object::Null{}),
+                None => Rc::new(Box::new(object::Null{})),
             }
     
         }
 
     }
 
-    fn is_truthy (obj: Box<dyn object::Object>) -> bool {
+    fn is_truthy (obj: Rc<Box<dyn object::Object>>) -> bool {
         match obj.object_type() {
             object::ObjectType::BOOLEAN => {
                 let boolean = obj.as_any().downcast_ref::<object::Boolean>().unwrap();
@@ -61,7 +77,7 @@ use crate::ast::Node;
         }
     }
 
-    fn eval_infix_expression(operator: &str, left: Box<dyn object::Object>, right: Box<dyn object::Object>) -> Box<dyn object::Object> {
+    fn eval_infix_expression(operator: &str, left: Rc<Box<dyn object::Object>>, right: Rc<Box<dyn object::Object>>) ->Rc< Box<dyn object::Object>> {
         match (left.object_type(), right.object_type()) {
             (object::ObjectType::INTEGER, object::ObjectType::INTEGER) => {
                 let left_value = left.as_any().downcast_ref::<object::Integer>().unwrap();
@@ -77,12 +93,12 @@ use crate::ast::Node;
         }
     }
 
-    fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> Box<dyn object::Object> {
+    fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> Rc<Box<dyn object::Object>> {
         match operator {
-            "+" => Box::new(object::Integer{value: left + right}),
-            "-" => Box::new(object::Integer{value: left - right}),
-            "*" => Box::new(object::Integer{value: left * right}),
-            "/" => Box::new(object::Integer{value: left / right}),
+            "+" => Rc::new(Box::new(object::Integer{value: left + right})),
+            "-" => Rc::new(Box::new(object::Integer{value: left - right})),
+            "*" => Rc::new(Box::new(object::Integer{value: left * right})),
+            "/" => Rc::new(Box::new(object::Integer{value: left / right})),
             "<" => bool_to_boolean_object(Some(left < right)),
             ">" => bool_to_boolean_object(Some(left > right)),
             "==" => bool_to_boolean_object(Some(left == right)),
@@ -91,7 +107,7 @@ use crate::ast::Node;
         }
     }
 
-    fn eval_boolean_infix_expression(operator: &str, left: bool, right: bool) -> Box<dyn object::Object> {
+    fn eval_boolean_infix_expression(operator: &str, left: bool, right: bool) -> Rc<Box<dyn object::Object>> {
         match operator {
             "==" => bool_to_boolean_object(Some(left == right)),
             "!=" => bool_to_boolean_object(Some(left != right)),
@@ -100,9 +116,9 @@ use crate::ast::Node;
     }
 
 
-    pub  fn eval_statements(statements: &Vec<Box<dyn Statement>>) -> Box<dyn object::Object> {
-        let mut result: Box<dyn object::Object> = Box::new(object::Null{});
-        for statement in statements {
+    pub  fn eval_program(statements: &Rc<&Vec<Box<dyn Statement>>>) -> Rc<Box<dyn object::Object>> {
+        let mut result: Rc<Box<dyn object::Object>> = Rc::new(Box::new(object::Null{}));
+        for statement in statements.iter() {
             // println!("{:?}", statement);
             result = eval(statement.as_node());
             if result.object_type() == object::ObjectType::RETURN {
@@ -112,16 +128,16 @@ use crate::ast::Node;
         return result;
     }
 
-    pub fn bool_to_boolean_object(input: Option<bool>) -> Box<dyn object::Object> {
+    pub fn bool_to_boolean_object(input: Option<bool>) -> Rc<Box<dyn object::Object>> {
         match input {
-            Some(true) => Box::new(object::Boolean{value: true}),
-            Some(false) => Box::new(object::Boolean{value: false}),
-            None => Box::new(object::Null{}),
+            Some(true) => Rc::new(Box::new(object::Boolean{value: true})),
+            Some(false) => Rc::new(Box::new(object::Boolean{value: false})),
+            None => Rc::new(Box::new(object::Null{})),
         }
             
     }
 
-    pub fn eval_perfix_expresion(operator: &str, right: Box<dyn object::Object>) -> Box<dyn object::Object> {
+    pub fn eval_perfix_expresion(operator: &str, right: Rc<Box<dyn object::Object>>) -> Rc<Box<dyn object::Object>> {
         match operator {
             "!" => eval_bang_operator_expression(right),
             "-" => eval_minus_prefix_operator_expression(right),
@@ -129,7 +145,7 @@ use crate::ast::Node;
         }
     }
 
-    fn eval_bang_operator_expression(right: Box<dyn object::Object>) -> Box<dyn object::Object> {
+    fn eval_bang_operator_expression(right: Rc<Box<dyn object::Object>>) -> Rc<Box<dyn object::Object>> {
         match right.object_type() {
             object::ObjectType::BOOLEAN => {
                 let boolean = right.as_any().downcast_ref::<object::Boolean>().unwrap();
@@ -140,11 +156,11 @@ use crate::ast::Node;
         }
     }
 
-    fn eval_minus_prefix_operator_expression(right: Box<dyn object::Object>) -> Box<dyn object::Object> {
+    fn eval_minus_prefix_operator_expression(right: Rc<Box<dyn object::Object>>) -> Rc<Box<dyn object::Object>> {
         match right.object_type() {
             object::ObjectType::INTEGER => {
                 let value = right.as_any().downcast_ref::<object::Integer>().unwrap();
-                return Box::new(object::Integer{value: -value.value});
+                return Rc::new(Box::new(object::Integer{value: -value.value}));
             }
             _ => panic!("Not implemented yet")
         }
@@ -184,7 +200,7 @@ mod test {
             test_integer_object(evaluated, expected);
         }
     }
-    fn test_eval(input: &str) -> Box<dyn object::Object>{
+    fn test_eval(input: &str) -> Rc<Box<dyn object::Object>>{
         let l = Lexer::new(input.to_string());
         let mut p = Parser::new(l);
         let program = p.parse_program();
@@ -193,7 +209,7 @@ mod test {
 
     }
 
-    fn test_integer_object(obj: Box<dyn object::Object>, expected: i64) {
+    fn test_integer_object(obj: Rc<Box<dyn object::Object>>, expected: i64) {
         let result = obj.as_any().downcast_ref::<object::Integer>().unwrap();
         assert_eq!(result.value, expected);
     }
@@ -228,7 +244,7 @@ mod test {
         }
 
     }
-    fn test_boolean_object(obj: Box<dyn object::Object>, expected: bool) {
+    fn test_boolean_object(obj: Rc<Box<dyn object::Object>>, expected: bool) {
         let result = obj.as_any().downcast_ref::<object::Boolean>().unwrap();
         assert_eq!(result.value, expected);
     }
@@ -271,7 +287,7 @@ mod test {
             }
         }
     }
-    fn test_null_object(obj: Box<dyn object::Object>) {
+    fn test_null_object(obj: Rc<Box<dyn object::Object>>) {
         assert_eq!(obj.object_type(), object::ObjectType::NULL);
     }
     #[test]
@@ -281,17 +297,17 @@ mod test {
             ("return 10; 9;", 10),
             ("return 2 * 5; 9;", 10),
             ("9; return 2 * 5; 9;", 10),
-            // (
-            //     r#"
-            //     if (10 > 1) {
-            //         if (10 > 1) {
-            //             return 10;
-            //         }
-            //         return 1;
-            //     }
-            //     "#,
-            //     10,
-            // ),
+            (
+                r#"
+                if (10 > 1) {
+                    if (10 > 1) {
+                        return 10;
+                    }
+                    return 1;
+                }
+                "#,
+                10,
+            ),
         ];
         for (input, expected) in tests {
             let evaluated = test_eval(input);

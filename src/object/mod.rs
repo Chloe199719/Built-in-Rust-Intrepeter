@@ -5,6 +5,7 @@ pub enum ObjectType {
     BOOLEAN,
     NULL,
     RETURN,
+    ERROR,
 
 }
     
@@ -15,6 +16,7 @@ impl Display for ObjectType  {
             ObjectType::BOOLEAN => write!(f, "BOOLEAN"),
             ObjectType::NULL => write!(f, "NULL"),
             ObjectType::RETURN => write!(f, "RETURN"),
+            ObjectType::ERROR => write!(f, "ERROR"),
         }
     }   
 }
@@ -101,3 +103,22 @@ impl Return  {
         self.value.clone()
     }
 }
+
+
+pub struct Error {
+    pub message: String
+}
+
+impl Object for Error {
+    fn object_type(&self) -> ObjectType {
+        ObjectType::ERROR
+    }
+    fn inspect(&self) -> String {
+        format!("ERROR: {}", self.message)
+    }
+    fn as_any(&self) -> &dyn any::Any {
+        self
+    }
+}
+
+
