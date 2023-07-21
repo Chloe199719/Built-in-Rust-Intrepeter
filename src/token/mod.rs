@@ -8,7 +8,8 @@ pub enum TokenType {
     // Identifiers + literals
     IDENT, // add, foobar, x, y, ...
     INT, // 1343456
-    
+    STRING, // "foobar"
+
     // Operators
     ASSIGN, // =
     PLUS, // +

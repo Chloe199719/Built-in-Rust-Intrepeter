@@ -14,6 +14,9 @@ pub enum ObjectType {
     ENVIRONMENT,
     FUNCTION,
 
+    STRING,
+    BUILTIN,
+
 }
     
 impl Display for ObjectType  {
@@ -26,6 +29,8 @@ impl Display for ObjectType  {
             ObjectType::ERROR => write!(f, "ERROR"),
             ObjectType::ENVIRONMENT => write!(f, "ENVIRONMENT"),
             ObjectType::FUNCTION => write!(f, "FUNCTION"),
+            ObjectType::STRING => write!(f, "STRING"),
+            ObjectType::BUILTIN => write!(f, "BUILTIN"),
         }
     }   
 }
@@ -154,6 +159,41 @@ impl Object for Function {
         out.push_str(&self.body.string());
         out.push_str("\n}");
         out
+    }
+    fn as_any(&self) -> &dyn any::Any {
+        self
+    }
+    
+}
+
+pub struct StringValue {
+    pub value: String,
+}
+
+impl Object for StringValue {
+    fn object_type(&self) -> ObjectType {
+        ObjectType::STRING
+    }
+    fn inspect(&self) -> String {
+        format!("{}", self.value)
+    }
+    fn as_any(&self) -> &dyn any::Any {
+        self
+    }
+    
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Builtin {
+    pub func: fn(Vec<Rc<Box<dyn Object>>>) -> Rc<Box<dyn Object>>
+}
+
+impl Object for Builtin {
+    fn object_type(&self) -> ObjectType {
+        ObjectType::BUILTIN
+    }
+    fn inspect(&self) -> String {
+        format!("builtin function")
     }
     fn as_any(&self) -> &dyn any::Any {
         self

@@ -16,7 +16,8 @@ pub enum NodeType {
     IfExpression,
     BlockStatement,
     FunctionLiteral,
-    CallExpression
+    CallExpression,
+    StringLiteral,
 }
 
 
@@ -574,6 +575,42 @@ impl Node for CallExpression {
     
 }
 
+#[derive(Debug)]
+pub struct StringLiteral {
+    pub token: Token,
+    pub value: String
+}
+
+impl Expression for StringLiteral {
+    fn expression_node(&self) {
+        
+    }
+
+    fn as_node(&self) -> &dyn Node {
+        self
+    }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
+    
+}
+
+impl Node for StringLiteral {
+    fn token_literal(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn string(&self) -> String {
+        self.token.literal.clone()
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::StringLiteral
+    }
+    
+}
 
 
 

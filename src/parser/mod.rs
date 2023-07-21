@@ -58,6 +58,7 @@ impl Parser {
         p.register_prefix(token::TokenType::LPAREN, Parser::parse_grouped_expression);
         p.register_prefix(token::TokenType::IF, Parser::parse_if_expression);
         p.register_prefix(token::TokenType::FUNCTION, Parser::parse_function_literal);
+        p.register_prefix(token::TokenType::STRING, Parser::parse_string_literal);
 
         p.register_infix(token::TokenType::MINUS, Parser::parse_infix_expression);
         p.register_infix(token::TokenType::PLUS, Parser::parse_infix_expression);
@@ -100,6 +101,13 @@ impl Parser {
             Some(p) => p.clone(),                                                                                                                                                                                                                   
             None => Precedence::LOWEST,
         }                                                                                                               
+    }
+
+    fn parse_string_literal(&mut self) -> Option<Box<dyn ast::Expression>> {
+        Some(Box::new(ast::StringLiteral {
+            token: self.cur_token.clone(),
+            value: self.cur_token.literal.clone(),
+        }))
     }
 
     fn parse_infix_expression(&mut self, left: Option<Box<dyn ast::Expression>>) -> Option<Box<dyn ast::Expression>> {
@@ -940,6 +948,23 @@ mod test {
         assert_eq!(program.statements.len(), 5);
         println!("{:#?}", program);
 
+    }
+    #[test]
+    fn test_string_integral_expresion(){
+        let input = r#""hello world";"#;
+        let l = Lexer::new(input.to_string());
+        let mut p = Parser::new(l);
+        let program = p.parse_program();
+        check_parser_errors(&p);
+        let stmt = &program.statements[0];
+        let expression = match stmt.as_any().downcast_ref::<ast::ExpressionStatement>() {
+            Some(stmt) => match stmt.expression.as_any().downcast_ref::<ast::StringLiteral>() {
+                Some(expression) => expression,
+                None => panic!("s not StringLiteral. got={}", stmt.token_literal()),
+            },
+            None => panic!("s not ExpressionStatement. got={}", stmt.token_literal()),
+        };
+        assert_eq!(expression.value, "hello world");
     }
 
   

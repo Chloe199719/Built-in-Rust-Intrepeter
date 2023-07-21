@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc};
-
+use crate::builtins;
 use crate::object;
 
 
@@ -7,18 +7,24 @@ use crate::object;
 pub struct Environment {
     pub store: HashMap<String, Rc<Box<dyn object::Object>>>,
     pub outer: Option< HashMap<String, Rc<Box<dyn object::Object>>>>,
+    pub builtins: HashMap<String, object::Builtin>,
 }
+
+
 
 impl Environment {
     pub fn new() -> Self {
-        Environment {
+      let mut x =  Environment {
             store: HashMap::new(),
             outer: None,
-        }
+            builtins: HashMap::new(),
+        };
+        x.builtins.insert("len".to_string(), object::Builtin{func: builtins::len});
+        x
     }
 
     pub fn get(&self, name: &str) -> Option<Rc<Box<dyn object::Object>>> {
-        println!("get: {}", name);
+        // println!("get: {}", name);
         match self.store.get(name) {
             Some(obj) => Some(obj.clone()),
             None =>  match &self.outer {

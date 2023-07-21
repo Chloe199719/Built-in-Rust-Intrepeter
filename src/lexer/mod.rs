@@ -93,6 +93,16 @@ impl Lexer {
                 }
                 return Token::new(TokenType::INT, number.as_str());
             },
+            b'"' => {
+                let mut string = String::new();
+                self.read_char();
+                while self.ch != b'"' && self.ch != 0 {
+                    string.push(char::from_u32(self.ch as u32).unwrap());
+                    self.read_char();
+                }
+                self.read_char();
+                return Token::new(TokenType::STRING, string.as_str());
+            },
             _ => Token::new(TokenType::ILLEGAL, char::from_u32(self.ch as u32).unwrap().to_string().as_str()),
         };
         self.read_char();
@@ -360,7 +370,7 @@ mod test {
     }
     #[test]
     fn test_next_token5 (){
-        let input = "
+        let input = r#"
         let five = 5;
         let ten = 10;
         let add = fn(x, y) {
@@ -376,7 +386,9 @@ mod test {
         }
         10 == 10
         10 != 9
-        ";
+        "foobar"
+        "foo bar"
+        "#;
         let tests = vec![
             Token::new(TokenType::LET, "let"),
             Token::new(TokenType::IDENT, "five"),
@@ -449,6 +461,8 @@ mod test {
             Token::new(TokenType::INT, "10"),
             Token::new(TokenType::NOT_EQ, "!="),
             Token::new(TokenType::INT, "9"),
+            Token::new(TokenType::STRING, "foobar"),
+            Token::new(TokenType::STRING, "foo bar"),
             Token::new(TokenType::EOF, ""),
         ];
         let mut l = Lexer::new(input.to_string());
@@ -460,4 +474,7 @@ mod test {
             assert_eq!(tok.literal, tt.literal);
         }
     }
+    
+
+    
 }

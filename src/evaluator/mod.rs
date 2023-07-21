@@ -59,6 +59,12 @@ impl Environment {
                 if value.is_some() {
                     return value.unwrap();
                 }
+                let builtin = self.builtins.get(node.as_any().downcast_ref::<ast::Identifier>().unwrap().value.as_str());
+                if builtin.is_some() {
+                    return Rc::new(Box::new(object::Builtin{func: builtin.unwrap().func.clone()}));
+                }
+
+
                 return self.new_error(&format!("identifier not found: {}", node.as_any().downcast_ref::<ast::Identifier>().unwrap().value));
             }
             ast::NodeType::FunctionLiteral => {
@@ -80,6 +86,7 @@ impl Environment {
                 return self.apply_function(function, &args);
           
             }
+            ast::NodeType::StringLiteral => Rc::new(Box::new(object::StringValue{value: node.as_any().downcast_ref::<ast::StringLiteral>().unwrap().value.clone()})),
             _ => panic!("Not implemented yet")
             
         }
@@ -89,7 +96,12 @@ impl Environment {
         let function = obj.as_any().downcast_ref::<object::Function>();
         let function = match function {
             Some(x) => x,
-            None => return  self.new_error(&format!("not a function: {}", obj.object_type())),    
+            None => match obj.as_any().downcast_ref::<object::Builtin>() {
+                Some(x) => return (x.func)(args.clone()),
+                None => return self.new_error(&format!("not a function: {}", obj.object_type())),
+            
+                
+            }
         };
         let mut extended_env = self.extend_function_env(function, args);
         let evaluated = extended_env.eval(function.body.as_node());
@@ -208,12 +220,29 @@ impl Environment {
                 let right_value = right.as_any().downcast_ref::<object::Boolean>().unwrap();
                 return self.eval_boolean_infix_expression(operator, left_value, right_value);
             },
+            (object::ObjectType::STRING, object::ObjectType::STRING) => {
+                let left_value = left.as_any().downcast_ref::<object::StringValue>().unwrap();
+                let right_value = right.as_any().downcast_ref::<object::StringValue>().unwrap();
+                return self.eval_string_infix_expression(operator, left_value, right_value);
+            },
+
             (object::ObjectType::INTEGER , _)=>{
                 return  self.new_error(&format!("type mismatch: {} {} {}", left.object_type(), operator, right.object_type()));
             }
             (object::ObjectType::BOOLEAN , _)=>{
                 return  self.new_error(&format!("type mismatch: {} {} {}", left.object_type(), operator, right.object_type()));
             }
+            _ => self.new_error(&format!("unknown operator: {} {} {}", left.object_type(), operator, right.object_type()))
+        }
+    }
+
+    fn eval_string_infix_expression(&self, operator: &str, left: &object::StringValue, right: &object::StringValue) -> Rc<Box<dyn object::Object>> {
+        match operator {
+            "+" => {
+                let left_value = left.value.clone();
+                let right_value = right.value.clone();
+                return Rc::new(Box::new(object::StringValue{value: left_value + right_value.as_str()}));
+            },
             _ => self.new_error(&format!("unknown operator: {} {} {}", left.object_type(), operator, right.object_type()))
         }
     }
@@ -462,7 +491,7 @@ mod test {
             //     "unknown operator: BOOLEAN + BOOLEAN",
             // ),
             // ("foobar", "identifier not found: foobar"),
-            // (r#""Hello" - "World""#, "unknown operator: STRING - STRING"),
+            (r#""Hello" - "World""#, "unknown operator: STRING - STRING"),
             // (
             //     r#"
             //     {
@@ -534,5 +563,39 @@ mod test {
         "#;
         let evaluated = test_eval(input);
         test_integer_object(evaluated, 4);
+    }
+    #[test]
+    fn test_string_literal(){
+        let input = r#""Hello World!""#;
+        let evaluated = test_eval(input);
+        let str_obj = evaluated.as_any().downcast_ref::<object::StringValue>().unwrap();
+        assert_eq!(str_obj.value, "Hello World!");
+    }
+    #[test]
+    fn test_string_concatenation(){
+        let input = r#""Hello" + " " + "World!""#;
+        let evaluated = test_eval(input);
+        let str_obj = evaluated.as_any().downcast_ref::<object::StringValue>().unwrap();
+        assert_eq!(str_obj.value, "Hello World!");
+    }
+    #[test]
+
+    fn test_builtin_functions(){
+        let tests = vec![
+            (r#"len("")"#, 0),
+            (r#"len("four")"#, 4),
+            (r#"len("hello world")"#, 11),
+            // (r#"len(1)"#, "argument to `len` not supported, got INTEGER"),
+            // (r#"len("one", "two")"#, "wrong number of arguments. got=2, want=1"),
+        ];
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            match expected {
+                0 => test_integer_object(evaluated, 0),
+                4 => test_integer_object(evaluated, 4),
+                11 => test_integer_object(evaluated, 11),
+                _ => panic!("unhandled case. got={}", expected),
+            }
+        }
     }
 }
