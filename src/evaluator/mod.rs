@@ -1,4 +1,4 @@
-use crate::ast;
+use crate::ast::{self, Expression};
 use crate::ast::Statement;
 use crate::object;
 use crate::ast::Node;
@@ -21,9 +21,37 @@ use crate::ast::Node;
 
                 return eval_infix_expression(&node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().operator, left, right);
                
-            }
+            },
+            ast::NodeType::BlockStatement => eval_statements(&node.as_any().downcast_ref::<ast::BlockStatement>().unwrap().statements),
+            ast::NodeType::IfExpression => eval_if_expression(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().as_node()),
             _ => panic!("Not implemented yet")
             
+        }
+    }
+
+    fn eval_if_expression(node: &dyn Node) -> Box<dyn object::Object>{
+        let condition = eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().condition.as_node());
+
+        if is_truthy(condition) {
+            return eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().consequence.as_node());
+        } else {
+            match node.as_any().downcast_ref::<ast::IfExpression>().unwrap().alternative  {
+                Some(_) => eval(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().alternative.as_ref().unwrap().as_node()),
+                None => Box::new(object::Null{}),
+            }
+    
+        }
+
+    }
+
+    fn is_truthy (obj: Box<dyn object::Object>) -> bool {
+        match obj.object_type() {
+            object::ObjectType::BOOLEAN => {
+                let boolean = obj.as_any().downcast_ref::<object::Boolean>().unwrap();
+                return boolean.value;
+            },
+            object::ObjectType::NULL => false,
+            _ => true,
         }
     }
 
@@ -213,5 +241,28 @@ mod test {
             test_boolean_object(evaluated, expected);
         }
 
+    }
+
+    #[test]
+    fn test_if_else_expressions(){
+        let tests = vec![
+            ("if (true) { 10 }", Some(10)),
+            ("if (false) { 10 }", None),
+            ("if (1) { 10 }", Some(10)),
+            ("if (1 < 2) { 10 }", Some(10)),
+            ("if (1 > 2) { 10 }", None),
+            ("if (1 > 2) { 10 } else { 20 }", Some(20)),
+            ("if (1 < 2) { 10 } else { 20 }", Some(10)),
+        ];
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            match expected {
+                Some(x) => test_integer_object(evaluated, x),
+                None => test_null_object(evaluated),
+            }
+        }
+    }
+    fn test_null_object(obj: Box<dyn object::Object>) {
+        assert_eq!(obj.object_type(), object::ObjectType::NULL);
     }
 }

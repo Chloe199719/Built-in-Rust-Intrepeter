@@ -1,5 +1,5 @@
 use std::{fmt::Display, any};
-
+#[derive(Debug, PartialEq, Clone)]
 pub enum ObjectType {
     INTEGER,
     BOOLEAN,
