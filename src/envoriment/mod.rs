@@ -6,7 +6,7 @@ use crate::object;
 #[derive( Clone)]
 pub struct Environment {
     pub store: HashMap<String, Rc<Box<dyn object::Object>>>,
-    pub outer: Option<Rc<Box<dyn object::Object>>>,
+    pub outer: Option< HashMap<String, Rc<Box<dyn object::Object>>>>,
 }
 
 impl Environment {
@@ -18,9 +18,16 @@ impl Environment {
     }
 
     pub fn get(&self, name: &str) -> Option<Rc<Box<dyn object::Object>>> {
+        println!("get: {}", name);
         match self.store.get(name) {
             Some(obj) => Some(obj.clone()),
-            None => None,
+            None =>  match &self.outer {
+                Some(outer) => match outer.get(name) {
+                    Some(obj) => Some(obj.clone()),
+                    None => None
+                },
+                None => None
+            }
         }
     }
 
@@ -28,7 +35,7 @@ impl Environment {
         self.store.insert(name.to_string(), val);
     }
 
-    pub fn new_enclosed_environment(outer: Rc<Box<dyn object::Object>>) -> Self {
+    pub fn new_enclosed_environment(outer: HashMap<String, Rc<Box<dyn object::Object>>>) -> Self {
         let mut env = Environment::new();
         env.outer = Some(outer);
         env

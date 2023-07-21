@@ -64,7 +64,7 @@ impl Environment {
             ast::NodeType::FunctionLiteral => {
                 let parameters = Rc::new(Box::new(node.as_any().downcast_ref::<ast::FunctionLiteral>().unwrap().parameters.clone()));
                 let body = node.as_any().downcast_ref::<ast::FunctionLiteral>().unwrap().body.clone();
-                return Rc::new(Box::new(object::Function{parameters, body, env: Environment::new()}));
+                return Rc::new(Box::new(object::Function{parameters, body, env: self.clone()}));
             }
             ast::NodeType::CallExpression =>{
                 let function = self.eval(node.as_any().downcast_ref::<ast::CallExpression>().unwrap().function.as_node());
@@ -98,7 +98,7 @@ impl Environment {
     }
 
     fn extend_function_env(&self, function: &object::Function, args: &Vec<Rc<Box<dyn object::Object>>>) -> Environment {
-        let mut env = Environment::new_enclosed_environment(Rc::new(Box::new(function.env.clone())));
+        let mut env = Environment::new_enclosed_environment(function.env.store.clone());
         for (i, param) in function.parameters.iter().enumerate() {
             env.set(param.string().as_str(), args[i].clone());
         }
@@ -333,6 +333,8 @@ mod test {
     }
 
     fn test_integer_object(obj: Rc<Box<dyn object::Object>>, expected: i64) {
+        println!("{:?}", obj.inspect()
+    );
         let result = obj.as_any().downcast_ref::<object::Integer>().unwrap();
         assert_eq!(result.value, expected);
     }
@@ -519,5 +521,18 @@ mod test {
             let evaluated = test_eval(input);
             test_integer_object(evaluated, expected);
         }
+    }
+    #[test]
+    fn test_closures(){
+        let input = r#"
+        let newAdder = fn(x) {
+            fn(y) { x + y };
+        };
+        
+        let addTwo = newAdder(2);
+        addTwo(2);
+        "#;
+        let evaluated = test_eval(input);
+        test_integer_object(evaluated, 4);
     }
 }
