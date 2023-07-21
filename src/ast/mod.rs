@@ -1,18 +1,42 @@
 use crate::token::Token;
+pub enum NodeType {
+    Program,
+    Statement,
+    Expression,
+    Identifier,
+    LetStatement,
+    ReturnStatement,
+    ExpressionStatement,
+    IntegerLiteral,
+    PrefixExpression,
+    InfixExpression,
+    Boolean,
+    IfExpression,
+    BlockStatement,
+    FunctionLiteral,
+    CallExpression
+}
 
-pub trait Node {
+
+pub trait Node  {
     fn token_literal(&self) -> String;
     fn string(&self) -> String;
+    fn as_any(&self) -> &dyn std::any::Any;
+    fn node_type(&self) -> NodeType;
 }
 
-pub trait Statement: Node + std::fmt::Debug   {
+pub trait Statement: Node + std::fmt::Debug + std::any::Any    {
     fn statement_node(&self);
-    fn as_any(&self) -> &dyn std::any::Any;
+    fn as_node(&self) -> &dyn Node ;
+  
+    // fn as_any(&self) -> &dyn std::any::Any;
 }
 
-pub trait Expression: Node + std::fmt::Debug  {
+pub trait Expression: Node + std::fmt::Debug + std::any::Any  {
+    fn as_node(&self) -> &dyn Node ;
+
     fn expression_node(&self);
-    fn as_any(&self) -> &dyn std::any::Any;
+    // fn as_any(&self) -> &dyn std::any::Any;
 }
 
 #[derive(Debug)]
@@ -35,6 +59,12 @@ impl Node for Program {
         }
         out
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn node_type(&self) -> NodeType {
+        NodeType::Program
+    }
 }
 #[derive(Debug)]
 pub struct LetStatement {
@@ -46,9 +76,13 @@ impl Statement for  LetStatement {
     fn statement_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 }
 impl Node for LetStatement {
     fn token_literal(&self) -> String {
@@ -67,6 +101,14 @@ impl Node for LetStatement {
         out
     }
 
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    
+    fn node_type(&self) -> NodeType {
+        NodeType::LetStatement
+    }
+
 }
 #[derive(Debug)]
 pub struct ReturnStatement {
@@ -78,7 +120,8 @@ impl Statement for ReturnStatement {
     fn statement_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
 }
@@ -97,6 +140,14 @@ impl Node for ReturnStatement {
         out.push_str(";");
         out
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::ReturnStatement
+    }
+
 }
 
 
@@ -110,9 +161,13 @@ impl Expression for  Identifier {
      fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn  as_node(&self) -> &dyn Node {
         self
     }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 }
 
 impl Node for Identifier {
@@ -121,6 +176,12 @@ impl Node for Identifier {
     }
     fn string(&self) -> String {
         self.value.clone()
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn node_type(&self) -> NodeType {
+        NodeType::Identifier
     }
 }
 #[derive(Debug)]
@@ -133,9 +194,13 @@ impl Statement for ExpressionStatement {
     fn statement_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 }
 
 impl Node for ExpressionStatement {
@@ -149,6 +214,12 @@ impl Node for ExpressionStatement {
             String::from("")
         }
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn node_type(&self) -> NodeType {
+        NodeType::ExpressionStatement
+    }
 }
 
 #[derive(Debug)]
@@ -161,9 +232,13 @@ impl Expression for IntegerLiteral {
     fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 }
 
 impl Node for IntegerLiteral {
@@ -173,6 +248,13 @@ impl Node for IntegerLiteral {
     fn string(&self) -> String {
         self.token.literal.clone()
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn node_type(&self) -> NodeType {
+        NodeType::IntegerLiteral
+    }
+    
 }
 
 #[derive(Debug)]
@@ -185,9 +267,14 @@ impl Expression for PrefixExpression {
     fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
+
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 
     
 }
@@ -204,6 +291,13 @@ impl Node for PrefixExpression {
         out.push(')');
         out
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::PrefixExpression
+    }
     
 }
 #[derive(Debug)]
@@ -217,10 +311,13 @@ impl Expression for InfixExpression {
     fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
-
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
     
 }
 
@@ -239,6 +336,13 @@ impl Node for InfixExpression {
         out.push(')');
         out
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::InfixExpression
+    }
     
 }
 #[derive(Debug)]
@@ -250,10 +354,13 @@ impl Expression for Boolean {
     fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
-
     
 }
 
@@ -263,6 +370,13 @@ impl Node for Boolean {
     }
     fn string(&self) -> String {
         self.token.literal.clone()
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::Boolean
     }
     
 }
@@ -278,9 +392,13 @@ impl Expression for IfExpression {
     fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 
     
 }
@@ -301,6 +419,13 @@ impl Node for IfExpression {
         }
         out
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::IfExpression
+    }
     
 }
 
@@ -313,9 +438,13 @@ impl Statement for BlockStatement {
     fn statement_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 
     
 }
@@ -331,6 +460,13 @@ impl Node for BlockStatement {
         }
         out
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::BlockStatement
+    }
     
 }
 
@@ -344,9 +480,13 @@ impl Expression for FunctionLiteral {
     fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+
+    fn as_node(&self) -> &dyn Node {
         self
     }
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
 
     
 }
@@ -368,6 +508,13 @@ impl Node for FunctionLiteral {
         out.push_str(&self.body.string());
         out
     }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::FunctionLiteral
+    }
     
 }
 
@@ -382,7 +529,10 @@ impl Expression for CallExpression {
     fn expression_node(&self) {
         
     }
-    fn as_any(&self) -> &dyn std::any::Any {
+    // fn as_any(&self) -> &dyn std::any::Any {
+    //     self
+    // }
+    fn as_node(&self) -> &dyn Node {
         self
     }
 
@@ -404,6 +554,13 @@ impl Node for CallExpression {
         out.push_str(&args.join(", "));
         out.push(')');
         out
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn node_type(&self) -> NodeType {
+        NodeType::CallExpression
     }
     
 }

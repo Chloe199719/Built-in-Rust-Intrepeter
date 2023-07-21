@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, any};
 
 pub enum ObjectType {
     INTEGER,
@@ -6,7 +6,7 @@ pub enum ObjectType {
     NULL
 }
     
-impl Display for ObjectType {
+impl Display for ObjectType  {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ObjectType::INTEGER => write!(f, "INTEGER"),
@@ -18,9 +18,11 @@ impl Display for ObjectType {
 
 
 
-pub trait Object {
+pub trait Object  {
     fn object_type(&self) -> ObjectType;
     fn inspect(&self) -> String;
+    fn as_any(&self) -> &dyn any::Any;
+
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -34,6 +36,9 @@ impl Object for Integer {
     }
     fn inspect(&self) -> String {
         format!("{}", self.value)
+    }
+    fn as_any(&self) -> &dyn any::Any {
+        self
     }
 }
 
@@ -49,6 +54,9 @@ impl Object for Boolean {
     fn inspect(&self) -> String {
         format!("{}", self.value)
     }
+    fn as_any(&self) -> &dyn any::Any {
+        self
+    }
 }
 
 
@@ -61,5 +69,8 @@ impl Object for Null {
     }
     fn inspect(&self) -> String {
         format!("null")
+    }
+    fn as_any(&self) -> &dyn any::Any {
+        self
     }
 }

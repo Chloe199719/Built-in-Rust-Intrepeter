@@ -1,6 +1,6 @@
 use std::io::{BufRead, Write};
-
-use crate::{lexer::Lexer,  parser:: Parser, ast::Node};
+use crate::evaluator;
+use crate::{lexer::Lexer,  parser:: Parser};
 const MONKEY_FACE:&str = r#" 
          __,__
    .--. .-" "-. .--.
@@ -30,8 +30,15 @@ pub fn  start<R: BufRead, W: Write>(reader: &mut R, writer: &mut W) {
             print_parse_errors(writer, parser.errors);
             continue;
         }
-        write!(writer, "{}", program.string()).unwrap();
-        write!(writer, "\n").unwrap();
+
+        let evaluated =  evaluator::eval(&program);
+
+      
+            write!(writer, "{}", evaluated.inspect()).unwrap();
+            write!(writer, "\n").unwrap();
+        
+
+       
     }
 }
 
