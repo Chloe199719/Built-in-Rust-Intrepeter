@@ -14,12 +14,58 @@ use crate::ast::Node;
                 let right = eval(node.as_any().downcast_ref::<ast::PrefixExpression>().unwrap().right.as_node());
                 return eval_perfix_expresion(&node.as_any().downcast_ref::<ast::PrefixExpression>().unwrap().operator, right);
 
-            }
+            },
+            ast::NodeType::InfixExpression => {
+                let left = eval(node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().left.as_node());
+                let right = eval(node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().right.as_node());
 
+                return eval_infix_expression(&node.as_any().downcast_ref::<ast::InfixExpression>().unwrap().operator, left, right);
+               
+            }
             _ => panic!("Not implemented yet")
             
         }
     }
+
+    fn eval_infix_expression(operator: &str, left: Box<dyn object::Object>, right: Box<dyn object::Object>) -> Box<dyn object::Object> {
+        match (left.object_type(), right.object_type()) {
+            (object::ObjectType::INTEGER, object::ObjectType::INTEGER) => {
+                let left_value = left.as_any().downcast_ref::<object::Integer>().unwrap();
+                let right_value = right.as_any().downcast_ref::<object::Integer>().unwrap();
+                return eval_integer_infix_expression(operator, left_value.value, right_value.value);
+            },
+            (object::ObjectType::BOOLEAN, object::ObjectType::BOOLEAN) => {
+                let left_value = left.as_any().downcast_ref::<object::Boolean>().unwrap();
+                let right_value = right.as_any().downcast_ref::<object::Boolean>().unwrap();
+                return eval_boolean_infix_expression(operator, left_value.value, right_value.value);
+            },
+            _ => panic!("Not implemented yet")
+        }
+    }
+
+    fn eval_integer_infix_expression(operator: &str, left: i64, right: i64) -> Box<dyn object::Object> {
+        match operator {
+            "+" => Box::new(object::Integer{value: left + right}),
+            "-" => Box::new(object::Integer{value: left - right}),
+            "*" => Box::new(object::Integer{value: left * right}),
+            "/" => Box::new(object::Integer{value: left / right}),
+            "<" => bool_to_boolean_object(Some(left < right)),
+            ">" => bool_to_boolean_object(Some(left > right)),
+            "==" => bool_to_boolean_object(Some(left == right)),
+            "!=" => bool_to_boolean_object(Some(left != right)),
+            _ => panic!("Not implemented yet")
+        }
+    }
+
+    fn eval_boolean_infix_expression(operator: &str, left: bool, right: bool) -> Box<dyn object::Object> {
+        match operator {
+            "==" => bool_to_boolean_object(Some(left == right)),
+            "!=" => bool_to_boolean_object(Some(left != right)),
+            _ => panic!("Not implemented yet")
+        }
+    }
+
+
     pub  fn eval_statements(statements: &Vec<Box<dyn Statement>>) -> Box<dyn object::Object> {
         let mut result: Box<dyn object::Object> = Box::new(object::Null{});
         for statement in statements {
@@ -121,23 +167,23 @@ mod test {
         let tests = vec![
             ("true", true),
             ("false", false),
-            // ("1 < 2", true),
-            // ("1 > 2", false),
-            // ("1 < 1", false),
-            // ("1 > 1", false),
-            // ("1 == 1", true),
-            // ("1 != 1", false),
-            // ("1 == 2", false),
-            // ("1 != 2", true),
-            // ("true == true", true),
-            // ("false == false", true),
-            // ("true == false", false),
-            // ("true != false", true),
-            // ("false != true", true),
-            // ("(1 < 2) == true", true),
-            // ("(1 < 2) == false", false),
-            // ("(1 > 2) == true", false),
-            // ("(1 > 2) == false", true),
+            ("1 < 2", true),
+            ("1 > 2", false),
+            ("1 < 1", false),
+            ("1 > 1", false),
+            ("1 == 1", true),
+            ("1 != 1", false),
+            ("1 == 2", false),
+            ("1 != 2", true),
+            ("true == true", true),
+            ("false == false", true),
+            ("true == false", false),
+            ("true != false", true),
+            ("false != true", true),
+            ("(1 < 2) == true", true),
+            ("(1 < 2) == false", false),
+            ("(1 > 2) == true", false),
+            ("(1 > 2) == false", true),
         ];
         for (input, expected) in tests {
             let evaluated = test_eval(input);
