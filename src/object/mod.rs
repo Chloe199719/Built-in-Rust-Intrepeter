@@ -1,4 +1,8 @@
 use std::{fmt::Display, any, rc::Rc};
+use crate::ast;
+use crate::ast::Statement;
+use crate::envoriment::Environment;
+use ast::Node;
 #[derive(Debug, PartialEq, Clone)]
 pub enum ObjectType {
     INTEGER,
@@ -6,6 +10,9 @@ pub enum ObjectType {
     NULL,
     RETURN,
     ERROR,
+
+    ENVIRONMENT,
+    FUNCTION,
 
 }
     
@@ -17,6 +24,8 @@ impl Display for ObjectType  {
             ObjectType::NULL => write!(f, "NULL"),
             ObjectType::RETURN => write!(f, "RETURN"),
             ObjectType::ERROR => write!(f, "ERROR"),
+            ObjectType::ENVIRONMENT => write!(f, "ENVIRONMENT"),
+            ObjectType::FUNCTION => write!(f, "FUNCTION"),
         }
     }   
 }
@@ -122,3 +131,32 @@ impl Object for Error {
 }
 
 
+pub struct Function {
+    pub parameters: Rc<Box<Vec<ast::Identifier>>>,
+    pub body: Rc<Box<dyn Statement>>,
+    pub env: Environment,
+}
+
+impl Object for Function {
+    fn object_type(&self) -> ObjectType {
+        ObjectType::FUNCTION
+    }
+    fn inspect(&self) -> String {
+        let mut out = String::new();
+        let mut params = Vec::new();
+        for p in self.parameters.iter() {
+            params.push(p.string());
+        }
+        out.push_str("fn");
+        out.push_str("(");
+        out.push_str(&params.join(", "));
+        out.push_str(") {\n");
+        out.push_str(&self.body.string());
+        out.push_str("\n}");
+        out
+    }
+    fn as_any(&self) -> &dyn any::Any {
+        self
+    }
+    
+}

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::token::{Token, self};
 use crate::ast;
@@ -168,7 +169,7 @@ impl Parser {
         let expression = ast::FunctionLiteral {
             token,
             parameters,
-            body,
+            body: Rc::new(body),
         };
         Some(Box::new(expression))
     }

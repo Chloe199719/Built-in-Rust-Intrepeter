@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::token::Token;
 pub enum NodeType {
     Program,
@@ -151,7 +153,7 @@ impl Node for ReturnStatement {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Identifier {
     pub token: Token,
     pub value: String
@@ -474,7 +476,7 @@ impl Node for BlockStatement {
 pub struct FunctionLiteral {
     pub token: Token,
     pub parameters: Vec<Identifier>,
-    pub body: Box<dyn Statement>
+    pub body: Rc<Box<dyn Statement>>
 }
 impl Expression for FunctionLiteral {
     fn expression_node(&self) {
@@ -484,13 +486,20 @@ impl Expression for FunctionLiteral {
     fn as_node(&self) -> &dyn Node {
         self
     }
+
+
     // fn as_any(&self) -> &dyn std::any::Any {
     //     self
     // }
 
     
 }
+impl FunctionLiteral {
+    pub fn get_parameters(&self) -> Vec<Identifier> {
+        self.parameters.clone()
+    }
 
+}
 impl Node for FunctionLiteral {
     fn token_literal(&self) -> String {
         self.token.literal.clone()

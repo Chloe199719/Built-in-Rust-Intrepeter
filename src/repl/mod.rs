@@ -1,5 +1,6 @@
 use std::io::{BufRead, Write};
-use crate::evaluator;
+use crate::envoriment::Environment;
+
 use crate::{lexer::Lexer,  parser:: Parser};
 const MONKEY_FACE:&str = r#" 
          __,__
@@ -18,6 +19,7 @@ const MONKEY_FACE:&str = r#"
 const PROMT: &str = ">> ";
 
 pub fn  start<R: BufRead, W: Write>(reader: &mut R, writer: &mut W) {
+    let mut  env = Environment::new();
     loop {
         write!(writer, "{}", PROMT).unwrap();
         writer.flush().unwrap();
@@ -35,7 +37,7 @@ pub fn  start<R: BufRead, W: Write>(reader: &mut R, writer: &mut W) {
             continue;
         }
 
-        let evaluated =  evaluator::eval(&program);
+        let evaluated =  env.eval(&program);
 
       
             write!(writer, "{}", evaluated.inspect()).unwrap();
