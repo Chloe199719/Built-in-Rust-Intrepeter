@@ -1,13 +1,15 @@
+use std::rc::Rc;
+
 use crate::ast::{self, Expression};
 use crate::ast::Statement;
 use crate::object;
 use crate::ast::Node;
 
-    pub fn eval(node: &dyn Node) -> Box<dyn object::Object> {
+    pub fn eval(node: &dyn Node) -> Rc<Box<dyn object::Object>> {
         match node.node_type() {
             ast::NodeType::Program => eval_statements(&node.as_any().downcast_ref::<ast::Program>().unwrap().statements),
             ast::NodeType::ExpressionStatement => eval(node.as_any().downcast_ref::<ast::ExpressionStatement>().unwrap().expression.as_node()),
-            ast::NodeType::IntegerLiteral =>Box::new(object::Integer{value:node.as_any().downcast_ref::<ast::IntegerLiteral>().unwrap().value}),
+            ast::NodeType::IntegerLiteral =>Rc::new(Box::new(object::Integer{value:node.as_any().downcast_ref::<ast::IntegerLiteral>().unwrap().value})),
             ast::NodeType::Boolean => bool_to_boolean_object(Some(node.as_any().downcast_ref::<ast::Boolean>().unwrap().value)),
             ast::NodeType::PrefixExpression => {
           
@@ -24,6 +26,10 @@ use crate::ast::Node;
             },
             ast::NodeType::BlockStatement => eval_statements(&node.as_any().downcast_ref::<ast::BlockStatement>().unwrap().statements),
             ast::NodeType::IfExpression => eval_if_expression(node.as_any().downcast_ref::<ast::IfExpression>().unwrap().as_node()),
+            ast::NodeType::ReturnStatement => {
+                let value = eval(node.as_any().downcast_ref::<ast::ReturnStatement>().unwrap().return_value.as_node());
+                return Box::new(object::Return{value});
+            }
             _ => panic!("Not implemented yet")
             
         }
@@ -99,6 +105,9 @@ use crate::ast::Node;
         for statement in statements {
             // println!("{:?}", statement);
             result = eval(statement.as_node());
+            if result.object_type() == object::ObjectType::RETURN {
+                return result.as_any().downcast_ref::<object::Return>().unwrap().value();
+            }
         }
         return result;
     }
@@ -264,5 +273,30 @@ mod test {
     }
     fn test_null_object(obj: Box<dyn object::Object>) {
         assert_eq!(obj.object_type(), object::ObjectType::NULL);
+    }
+    #[test]
+    fn test_return_statements(){
+        let tests = vec![
+            ("return 10;", 10),
+            ("return 10; 9;", 10),
+            ("return 2 * 5; 9;", 10),
+            ("9; return 2 * 5; 9;", 10),
+            // (
+            //     r#"
+            //     if (10 > 1) {
+            //         if (10 > 1) {
+            //             return 10;
+            //         }
+            //         return 1;
+            //     }
+            //     "#,
+            //     10,
+            // ),
+        ];
+        for (input, expected) in tests {
+            let evaluated = test_eval(input);
+            test_integer_object(evaluated, expected);
+        }
+
     }
 }
